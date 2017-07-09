@@ -32,7 +32,7 @@ uchar code table1[]={        //经处理后进行键输入显示准备的数组 
 0x01-0x30,0,0x3d-0x30,0x2b-0x30//C，0，=，＋
 };
 
-long table2[19];     //存储结果的数组(20报错)
+long table2[19];     //存储结果
 uchar code beginWord[]="This is a simple";
 uchar code beginWord1[]="Calculator" ;
 
