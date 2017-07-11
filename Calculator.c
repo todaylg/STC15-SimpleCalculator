@@ -13,7 +13,9 @@ sbit res=P1^3;
 sbit psb=P1^6;//串并选择，H=串 L=并
 
 char i,j,temp,num,num_1;
+int top=0;
 long a,b,c;     //a,第一个数 b,第二个数 c,得数
+long temptable[19];
 float a_c,b_c;
 uchar symbolFlag,symbolValue;
 //symbolFlag=1表示有运算符键按下，symbolFlag=0表示没有运算符键按下；
@@ -32,9 +34,9 @@ uchar code table1[]={        //经处理后进行键输入显示准备的数组 
 0x01-0x30,0,0x3d-0x30,0x2b-0x30//C，0，=，＋
 };
 
-long table2[19];     //存储结果
-uchar code beginWord[]="This is a simple";
-uchar code beginWord1[]="Calculator" ;
+uchar code beginWord[]="  通信14-1班";
+uchar code beginWord1[]="    卢罡" ;
+uchar code beginWord2[]="  简易计算器" ;
 
 //延时函数
 void delay(uint x){//x单位为毫秒
@@ -86,20 +88,26 @@ void init(){
 //开机屏幕显示
 void begin(){
     uchar num;
-    write_com(0x90);    ////80 90 88 98
+    write_com(0x80);    ////80 90 88 98
     delay(2);
-    for(num=0;num<16;num++){
+    for(num=0;num<13;num++){
         write_data(beginWord[num]);
         delay(2);
     }
-    write_com(0x88);
+    write_com(0x90);
     delay(2);
-    for(num=0;num<10;num++){
+    for(num=0;num<9;num++){
         write_data(beginWord1[num]);
         delay(2);
     }
-    delay(2000);
-    write_com(0x01);//2s后清除显示
+        write_com(0x88);
+    delay(2);
+    for(num=0;num<13;num++){
+        write_data(beginWord2[num]);
+        delay(2);
+    }
+    delay(8000);
+    write_com(0x01);//清除显示
 }
 
 //键盘扫描程序
@@ -228,12 +236,22 @@ void keyscan() {
             }break;
             case 14:{//按下等于键，根据运算符号进行不同的算术处理
                 j=1;//j是按下等于后的标志位 
+                top = 0;
                 if(symbolValue==1){//加法运算
                     write_com(0x98);           //结果在第四行显示
                     // write_com(0x04);     //设置从后住前写数据，每写完一个数据，光标后退一格 //游标先不管       
                     c=a+b;
-                    while(c!=0){write_data(0x30+c%10);        c=c/10;                } 
-                    write_data(0x3d);     //再写"="
+                    write_data(0x3d);     //"=" 
+                    while(c!=0){
+                        temptable[top]=c%10;
+                        top=top+1;
+                            c=c/10;
+                     }
+                     top = top-1;
+                     while(top>=0){
+                        write_data(0x30+temptable[top]);
+                         top=top-1;
+                    }
                     a=0;b=0;symbolFlag=0;symbolValue=0;
                 }
                 else if(symbolValue==2){//减法运算
@@ -241,22 +259,43 @@ void keyscan() {
                     // write_com(0x04);      
                     if(a-b>0) c=a-b;
                     else c=b-a;
-                    while(c!=0){
-                        write_data(0x30+c%10);
-                        c=c/10;         } 
+                    write_data(0x3d);     //"=" 
                     if(a-b<0) write_data(0x2d);
-                    write_data(0x3d);     //再写"="           
+                    if(c==0){
+                        write_data(0x30);
+                    }else{
+                        while(c!=0){
+                            temptable[top]=c%10;
+                            top=top+1;
+                            c=c/10;
+                         }
+                         top = top-1;
+                         while(top>=0){
+                            write_data(0x30+temptable[top]);
+                            top=top-1;
+                        }
+                    }      
                     a=0;b=0;symbolFlag=0;symbolValue=0;//归位
                 }
                 else if(symbolValue==3){//乘法运算 
                     write_com(0x98);          
                     // write_com(0x04);      
                     c=a*b;
-                    while(c!=0){
-                        write_data(0x30+c%10);
-                        c=c/10;
-                    } 
                     write_data(0x3d);
+                    if(c==0){
+                        write_data(0x30);
+                    }else{
+                        while(c!=0){
+                            temptable[top]=c%10;
+                            top=top+1;
+                            c=c/10;
+                        }
+                         top = top-1;
+                         while(top>=0){
+                            write_data(0x30+temptable[top]);
+                             top=top-1;
+                        }
+                    }
                     a=0;b=0;symbolFlag=0;symbolValue=0;
                 }
                 else if(symbolValue==4){//除法运算        
@@ -265,26 +304,36 @@ void keyscan() {
                     i=0;
                     if(b!=0){
                         c=(long)(((float)a/b)*1000);
-                        while(c!=0){ 
-                            write_data(0x30+c%10);
+                        write_data(0x3d);//=   
+                        while(c!=0){
+                            temptable[top]=c%10;
+                            top=top+1;
                             c=c/10;
-                            i++; 
-                            if(i==3) write_data(0x2e);
+                         }
+                        top=top-1;
+                        if(a/b>0){
+                            while(top>=0){
+                                write_data(0x30+temptable[top]);
+                                top=top-1;
+                                i++; 
+                                if(top==2) write_data(0x2e);
+                            }
                         }
                         if(a/b<=0){
-                            if(i<=2){                  
-                                if(i==1) write_data(0x30);
-                                write_data(0x2e);//  .
-                                write_data(0x30);
-                            } 
-                                             
-                            write_data(0x30);//
-                        }
-                        write_data(0x3d);                              
+                            write_data(0x30);
+                            write_data(0x2e);//  .
+                            if(top==1){top++;temptable[top]=0;}
+                            if(top==0){top=2;temptable[1]=0;temptable[2]=0;}
+                            if(top<0){top=2;temptable[0]=0;temptable[1]=0;}
+                            while(top>=0){
+                                write_data(0x30+temptable[top]);
+                                top=top-1;
+                            }
+                        }                   
                         a=0;b=0;symbolFlag=0;symbolValue=0;
                     }else{//error
-                        write_data('!');write_data('R');write_data('O');
-                        write_data('R');write_data('R');write_data('E');
+                        write_data('E');write_data('R');write_data('R');
+                        write_data('O');write_data('R'); write_data('!');
                     }
                 }
             }break;
