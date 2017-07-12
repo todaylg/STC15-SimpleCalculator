@@ -14,7 +14,7 @@ sbit psb=P1^6;//串并选择，H=串 L=并
 
 char i,j,temp,num,num_1;
 int top=0;
-long a,b,c;     //a,第一个数 b,第二个数 c,得数
+long a,b,c,resTemp;     //a,第一个数 b,第二个数 c,得数,res结果缓存
 long temptable[19];
 float a_c,b_c;
 uchar symbolFlag,symbolValue;
@@ -117,7 +117,7 @@ void keyscan() {
     if(P2!=0xfe){
         delay(20);// 延迟20ms
         if(P2!=0xfe) {  
-            temp=P2&0xf0;
+            temp=P2&0xf0;   //十字相乘
             switch(temp){
                 case 0xe0:num=0;   break;        //7    1110
                 case 0xd0:num=1;   break;        //8    1101
@@ -133,11 +133,24 @@ void keyscan() {
             if(symbolFlag==0){//没有按过运算符键
                 a=a*10+table[num];//按下数字存储到a
             }else{//如果按过运算符键
-                b=b*10+table[num];//按下数字存储到b
+                b= *10+table[num];//按下数字存储到b
             }
         }else{//如果按下的是'/'（除法）
-            symbolFlag=1;         //按下了运算符
-            symbolValue=4;//4表示除号已按
+            if(j!=0){
+                a=resTemp;
+                b=0;
+                symbolFlag = 1;
+                symbolValue = 4;
+                write_com(0x01); j=0;//j代表是否按下了=，在下一次计算之前先清屏
+            }else if(symbolFlag==1){
+                a=a/b;
+                b=0;
+                symbolFlag = 1;
+                symbolValue = 4;
+            }else if(symbolFlag==0){
+                symbolFlag=1;//第一次按下运算符
+                symbolValue=4;
+            }
         }
         i=table1[num];     //数据显示做准备
         write_data(0x30+i);//显示数据或操作符号 都是以0的ASCII key：30为基准
@@ -166,8 +179,21 @@ void keyscan() {
                 b=b*10+table[num];//按下数字存储到b
             }
         }else{//如果按下的是'×'
-            symbolFlag=1;         //按下了运算符
-            symbolValue=3;
+           if(j!=0){
+                a=resTemp;
+                b=0;
+                symbolFlag = 1;
+                symbolValue = 3;
+                write_com(0x01); j=0;//j代表是否按下了=，在下一次计算之前先清屏
+            }else if(symbolFlag==1){
+                a=a*b;
+                b=0;
+                symbolFlag = 1;
+                symbolValue = 3;
+            }else if(symbolFlag==0){
+                symbolFlag=1;//第一次按下运算符
+                symbolValue=3;
+            }
         }
         i=table1[num];     //数据显示做准备
         write_data(0x30+i);//显示数据或操作符号
@@ -196,8 +222,21 @@ void keyscan() {
                 b=b*10+table[num];//按下数字存储到b
             }
         }else{//如果按下的是'-'
-            symbolFlag=1;         //按下运算符
-            symbolValue=2;
+            if(j!=0){
+                a=resTemp;
+                b=0;
+                symbolFlag = 1;
+                symbolValue = 2;
+                write_com(0x01); j=0;//j代表是否按下了=，在下一次计算之前先清屏
+            }else if(symbolFlag==1){
+                a=a*b;
+                b=0;
+                symbolFlag = 1;
+                symbolValue = 2;
+            }else if(symbolFlag==0){
+                symbolFlag=1;//第一次按下运算符
+                symbolValue=2;
+            }
         }
         i=table1[num];     //数据显示做准备
         write_data(0x30+i);//显示数据或操作符号
@@ -241,6 +280,7 @@ void keyscan() {
                     write_com(0x98);           //结果在第四行显示
                     // write_com(0x04);     //设置从后住前写数据，每写完一个数据，光标后退一格 //游标先不管       
                     c=a+b;
+                    resTemp=c;
                     write_data(0x3d);     //"=" 
                     while(c!=0){
                         temptable[top]=c%10;
@@ -259,6 +299,7 @@ void keyscan() {
                     // write_com(0x04);      
                     if(a-b>0) c=a-b;
                     else c=b-a;
+                    resTemp=c;
                     write_data(0x3d);     //"=" 
                     if(a-b<0) write_data(0x2d);
                     if(c==0){
@@ -281,6 +322,7 @@ void keyscan() {
                     write_com(0x98);          
                     // write_com(0x04);      
                     c=a*b;
+                    resTemp=c;
                     write_data(0x3d);
                     if(c==0){
                         write_data(0x30);
@@ -304,6 +346,7 @@ void keyscan() {
                     i=0;
                     if(b!=0){
                         c=(long)(((float)a/b)*1000);
+                        resTemp=c/1000;
                         write_data(0x3d);//=   
                         while(c!=0){
                             temptable[top]=c%10;
@@ -338,9 +381,22 @@ void keyscan() {
                 }
             }break;
             case 15:{
+                if(j!=0){
+                    a=resTemp;
+                    b=0;
+                    symbolFlag = 1;
+                    symbolValue = 1;
+                    write_com(0x01); j=0;//j代表是否按下了=，在下一次计算之前先清屏
+                }else if(symbolFlag==1){
+                    a=a*b;
+                    b=0;
+                    symbolFlag = 1;
+                    symbolValue = 1;
+                }else if(symbolFlag==0){
+                    symbolFlag=1;//第一次按下运算符
+                    symbolValue=1;
+                }
                 write_data(0x30+table1[num]);
-                symbolFlag=1;
-                symbolValue=1;//加键  设置加标志symbolValue=1;
             }break;        
         }
     }
